@@ -214,15 +214,7 @@ print(results["ablation"]["with_guardrail"])
 
 If you use this code or data in your research, please cite:
 
-```bibtex
-@article{yang2025llm,
-  title   = {LLM Agent-Driven Counterfactual Explanations for Comorbid
-             Chronic Disease Risk Management: An XAI Framework with Clinical Guardrails},
-  author  = {Yang, Myeonggyun and Chun, Hyunwoo},
-  journal = {[Journal Name]},
-  year    = {2025},
-  doi     = {[DOI]}
-}
+```
 ```
 
 ---
