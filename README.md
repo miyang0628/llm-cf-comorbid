@@ -108,11 +108,15 @@ tqdm==4.66.4
 jupyter==1.0.0
 ```
 
-> **vLLM** must be installed separately (requires CUDA 11.8+):
+> **OpenAI API key** is required for the guardrail agent (GPT-4o-mini):
 > ```bash
-> pip install vllm==0.4.2
+> export OPENAI_API_KEY="your-api-key-here"
 > ```
-> If GPU is unavailable, the pipeline can be run in **guardrail-disabled mode** (pure DiCE, no LLM agent).
+> Set your key in the notebook before running Section 3:
+> ```python
+> import openai
+> client = openai.OpenAI(api_key="your-api-key-here")
+> ```
 
 ---
 
@@ -128,15 +132,16 @@ Due to data redistribution restrictions, raw KNHANES data is not included in thi
 
 ## Quickstart
 
-### 1. Start the vLLM server (GPU required)
+### 1. Set OpenAI API Key
 
-```bash
-python -m vllm.entrypoints.openai.api_server \
-    --model Qwen/Qwen2.5-32B-Instruct-AWQ \
-    --quantization awq \
-    --host 0.0.0.0 \
-    --port 8000
+```python
+# In comorbid_risk_cf_pipeline.ipynb — Section 3
+import openai
+client = openai.OpenAI(api_key="your-api-key-here")
 ```
+
+> The guardrail agent uses **GPT-4o-mini** via the OpenAI API.  
+> XGBoost training and DiCE counterfactual generation run fully locally with no API dependency.
 
 ### 2. Run the notebook
 
