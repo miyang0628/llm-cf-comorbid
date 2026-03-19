@@ -1,227 +1,180 @@
-# LLM Agent-Driven Counterfactual Explanations for Comorbid Chronic Disease Risk Management
-### An XAI Framework with Clinical Guardrails
+# LLM-Guided Counterfactual Intervention for Comorbid Chronic Disease Risk in Health Insurance
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![vLLM](https://img.shields.io/badge/vLLM-0.4.2-purple.svg)](https://github.com/vllm-project/vllm)
-[![XGBoost](https://img.shields.io/badge/XGBoost-2.0.3-orange.svg)](https://xgboost.readthedocs.io/)
-[![DiCE](https://img.shields.io/badge/DiCE--ML-0.11-green.svg)](https://github.com/interpretml/DiCE)
+This repository contains the full reproducibility code for the paper:
 
-> Official implementation of the paper:  
-> **"LLM Agent-Driven Counterfactual Explanations for Comorbid Chronic Disease Risk Management: An XAI Framework with Clinical Guardrails"**  
-> *[Journal Name], 2025*
+> **"LLM-Guided Counterfactual Intervention for Comorbid Chronic Disease Risk in Health Insurance"**  
+> Munil Yang, Heuiju Chun  
+> SSIST / Dongduk Women's University, Seoul, Republic of Korea
 
 ---
 
 ## Overview
 
-This repository provides the full implementation of a hybrid intelligent agent pipeline for comorbid chronic disease (hypertension + diabetes) risk management. The framework integrates three core components:
+We propose a three-stage hybrid framework that combines:
 
-1. **XGBoost** — Gender-specific multi-class risk prediction (Class 0–3)
-2. **vLLM Clinical Guardrail Agent** — On-premises Qwen2.5-32B-Instruct-AWQ generates physiologically valid `permitted_range` constraints, resolving intervention conflicts (e.g., sodium reduction → compensatory carbohydrate increase)
-3. **DiCE** — Diverse Counterfactual Explanations generate 4 personalized health improvement pathways within guardrail boundaries, with automatic **Fallback Logic** for stepwise goal transition
-
-| Risk Class | Definition | Role in Framework |
-|---|---|---|
-| Class 0 | Normal (no hypertension, no diabetes) | Primary intervention target |
-| Class 1 | Hypertension only | Fallback target 1 |
-| Class 2 | Diabetes only | Fallback target 2 |
-| Class 3 | Comorbid (hypertension + diabetes) | Intervention subject |
+1. **Stage 1 — XGBoost Multi-Class Risk Model**: Gender-stratified 4-class risk classification (Normal / HTN-only / DM-only / Comorbid) trained on KNHANES 2020–2024.
+2. **Stage 2 — GPT-4o-mini Clinical Guardrail Agent**: Dynamically derives patient-specific `permitted_range` constraints in JSON, enforcing physical consistency, intervention conflict prevention, and nutritional safety floors.
+3. **Stage 3 — DiCE Counterfactual Generator**: Genetic-algorithm-based counterfactual search within guardrail-constrained space, with a stepwise fallback mechanism (Class 0 → 1 → 2).
 
 ---
 
 ## Repository Structure
 
 ```
-.
-├── comorbid_risk_cf_pipeline.ipynb   # Full pipeline: preprocessing → training → guardrail → CF generation
-├── phd_experiment_results.json       # All experiment outputs (Tables 3, 4, 5 in paper)
-├── model_male_v2.pkl                 # Pretrained XGBoost model — male
-├── model_female_v2.pkl               # Pretrained XGBoost model — female
-├── agent_config_v2.pkl               # vLLM guardrail agent configuration & prompt templates
-├── requirements.txt
+llm-cf-comorbid/
+├── llm_cf_comorbid.ipynb       # Full pipeline (data → model → guardrail → DiCE)
+├── experiment_results.json     # Output: guardrail CFs + no-guardrail baseline
+├── knhanes_comorbid_2020_2024.csv  # Preprocessed dataset (generated on first run)
+├── model_male.pkl              # Trained XGBoost model (male)
+├── model_female.pkl            # Trained XGBoost model (female)
+├── agent_config.pkl            # Feature lists and hyperparameters
+├── df_final.pkl                # Numeric dataset for DiCE
 └── README.md
 ```
-
-### File Descriptions
-
-**`comorbid_risk_cf_pipeline.ipynb`**  
-End-to-end Jupyter notebook covering all experimental steps:
-- Section 1: KNHANES data loading & preprocessing
-- Section 2: Gender-specific XGBoost model training & evaluation (Accuracy, Recall per class)
-- Section 3: vLLM guardrail agent setup & `permitted_range` generation
-- Section 4: DiCE counterfactual generation with guardrail injection
-- Section 5: Fallback Logic execution (Class 3 → 0 → 1 → 2)
-- Section 6: Case study analysis (male & female, Tables 3–5)
-
-**`phd_experiment_results.json`**  
-Pre-computed results for all case studies reported in the paper, including:
-- Male case: 4 CF pathways to Class 0 (Table 3)
-- Female case: 4 CF pathways to Class 1 via Fallback (Table 4)
-- Guardrail ablation: w/ vs. w/o guardrail comparison (Table 5)
-
-**`model_male_v2.pkl` / `model_female_v2.pkl`**  
-Pretrained XGBoost multi-class models (4-class: 0–3) trained on KNHANES data.  
-- Male model accuracy: 0.58 | Class 3 recall: 0.47  
-- Female model accuracy: 0.75 | Class 3 recall: 0.59
-
-**`agent_config_v2.pkl`**  
-Serialized configuration for the vLLM guardrail agent, including:
-- System & user prompt templates
-- Conflict prevention rule definitions (sodium–carbohydrate, BMI–waist synchronization, energy floor 70%)
-- Gender-specific constraint logic
 
 ---
 
 ## Requirements
 
-### Experimental Environment
+```
+Python 3.10+
+xgboost==2.0.3
+dice-ml==0.11
+openai>=1.0.0
+optuna
+pyreadstat
+scikit-learn
+pandas
+numpy
+joblib
+```
 
-| Component | Specification |
-|---|---|
-| CPU | Intel Core i5-14500 (14 cores / 20 threads, up to 4.32GHz) |
-| RAM | 128GB |
-| GPU | NVIDIA GeForce RTX 4060 Ti |
-| OS | Windows 10 / Ubuntu 20.04+ |
-| Python | 3.10+ |
-
-### Installation
+Install all dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install xgboost==2.0.3 dice-ml==0.11 openai optuna pyreadstat scikit-learn pandas numpy joblib
 ```
-
-**`requirements.txt`**
-```
-xgboost==2.0.3
-scikit-learn==1.4.2
-dice-ml==0.11
-shap==0.45.0
-openai==1.30.1
-numpy==1.26.4
-pandas==2.2.2
-scipy==1.13.0
-imbalanced-learn==0.12.3
-matplotlib==3.8.4
-seaborn==0.13.2
-tqdm==4.66.4
-jupyter==1.0.0
-```
-
-> **OpenAI API key** is required for the guardrail agent (GPT-4o-mini):
-> ```bash
-> export OPENAI_API_KEY="your-api-key-here"
-> ```
-> Set your key in the notebook before running Section 3:
-> ```python
-> import openai
-> client = openai.OpenAI(api_key="your-api-key-here")
-> ```
 
 ---
 
 ## Data
 
-This study uses the **Korea National Health and Nutrition Examination Survey (KNHANES)**.
+This study uses the **Korea National Health and Nutrition Examination Survey (KNHANES)** 2020–2024, administered by the Korea Disease Control and Prevention Agency (KDCA).
 
-🔗 Official portal: https://knhanes.kdca.go.kr/
+The raw SAS files (`hn20_all.sas7bdat` ~ `hn24_all.sas7bdat`) must be placed in the same directory as the notebook. Data are available at: https://knhanes.kdca.go.kr
 
-Due to data redistribution restrictions, raw KNHANES data is not included in this repository. Please download directly from the official portal and place the file at the path specified in Section 1 of the notebook.
+> **Note**: Due to data use agreements, raw KNHANES files are not included in this repository. The preprocessed CSV (`knhanes_comorbid_2020_2024.csv`) is generated automatically on the first run.
 
 ---
 
-## Quickstart
+## How to Run
 
-### 1. Set OpenAI API Key
+### 1. Set your OpenAI API key
+
+In `llm_cf_comorbid.ipynb`, Cell 0:
 
 ```python
-# In comorbid_risk_cf_pipeline.ipynb — Section 3
-import openai
-client = openai.OpenAI(api_key="your-api-key-here")
+OPENAI_API_KEY = "YOUR_API_KEY_HERE"
 ```
 
-> The guardrail agent uses **GPT-4o-mini** via the OpenAI API.  
-> XGBoost training and DiCE counterfactual generation run fully locally with no API dependency.
+### 2. Run all cells in order
 
-### 2. Run the notebook
+The notebook is self-contained and executes the full pipeline sequentially:
 
-```bash
-jupyter notebook comorbid_risk_cf_pipeline.ipynb
-```
-
-Execute cells sequentially. Each section corresponds to a paper section:
-
-| Notebook Section | Corresponds to Paper |
+| Section | Description |
 |---|---|
-| Section 2: Model training | Section 3.3 |
-| Section 3: Guardrail generation | Section 3.4 + Table 2 |
-| Section 4: CF generation | Section 3.5 + Tables 3, 4 |
-| Section 5: Fallback Logic | Section 3.6 |
-| Section 6: Ablation | Section 4.4 + Table 5 |
+| 0 | Library imports and settings |
+| 1 | KNHANES 2020–2024 data merge and preprocessing |
+| 2 | Feature definition and numeric dataset construction |
+| 3 | XGBoost gender-stratified training (Optuna hyperparameter search) |
+| 4 | GPT-4o-mini clinical guardrail agent definition |
+| 5 | DiCE counterfactual generation with stepwise fallback |
+| 6 | Full pipeline execution (male + female) |
+| 7 | No-guardrail baseline (Table 6 comparison) |
+| 8 | Export results to `experiment_results.json` |
 
-### 3. Load pre-computed results
+---
 
-To skip computation and inspect reported results directly:
+## Key Design Decisions
+
+### Non-modifiable variables (fixed in DiCE search)
+The following variables are held fixed at the patient's current value and excluded from `features_to_vary`:
 
 ```python
-import json
-with open("phd_experiment_results.json", "r") as f:
-    results = json.load(f)
-
-# Male case (Table 3)
-print(results["male_case"]["cf_pathways"])
-
-# Female case with Fallback (Table 4)
-print(results["female_case"]["fallback_target"])   # → 1 (Class 1)
-print(results["female_case"]["cf_pathways"])
-
-# Guardrail ablation (Table 5)
-print(results["ablation"]["without_guardrail"])
-print(results["ablation"]["with_guardrail"])
+FIXED_FEATURES = [
+    'StressLevel', 'StressAwarenessRate',
+    'PersonalIncomeQuartile', 'HouseholdIncomeQuartile',
+    'EducationLevel', 'HealthScreeningStatus',
+]
 ```
+
+### Physical correction layer (guardrail hard overrides)
+After the LLM generates `permitted_range`, the following rules are applied unconditionally in code:
+
+| Rule | Description |
+|---|---|
+| A | BMI, WaistCirc, Weight: `[current × 0.85, current]` — coupled reduction |
+| B | Energy_kcal: floor at `max(current × 0.70, 500)`, ceiling at current |
+| C | Sodium_mg: floor at `max(current × 0.60, 800)`, ceiling at `current × 0.90` |
+| D | Carb_g, Sugar_g: ceiling capped at current (conflict prevention) |
+| E | Protein_g ≥ 60% / Potassium_mg ≥ 50% / Carb_g ≥ 20% / Fiber_g ≥ 30% of current |
+
+### Post-processing
+- Categorical variables rounded to nearest valid integer from dataset
+- Anthropometric coupling enforced: the variable with the largest reduction sets the target ratio; others are scaled to match
+
+### Stepwise fallback
+When Class 0 (Normal) is unreachable within guardrail-constrained space:
+```
+Class 3 → Class 0 (primary)
+       → Class 1 / HTN-only (fallback 1)
+       → Class 2 / DM-only  (fallback 2)
+```
+The fallback depth is recorded in output and serves as a clinical staging indicator.
 
 ---
 
-## Key Clinical Constraints Implemented
+## Output Format
 
-| Constraint | Rule | Clinical Rationale |
-|---|---|---|
-| Sodium–Carbohydrate conflict | When sodium↓, carbohydrate ceiling = current value | Prevents compensatory sugar intake (Feldman & Schmidt, 1999) |
-| Physical synchronization | BMI↓ requires waist↓ within plausible range | Physiological co-occurrence |
-| Energy floor | Minimum intake ≥ 70% of current | Prevents extreme dietary restriction |
-| Fallback sequence | Class 0 → Class 1 → Class 2 | Stepwise realistic goal setting |
+`experiment_results.json` contains two sections:
+
+- **`results`**: Guardrail-constrained counterfactuals (4 pathways per patient)
+- **`baseline_no_guardrail`**: Unconstrained DiCE output on the same patient (reproduces Table 6 hallucination examples)
 
 ---
 
-## Reproducing Paper Tables
+## On-Premises Configuration
 
-```bash
-# All results are pre-computed in phd_experiment_results.json
-# To re-run from scratch, execute all cells in comorbid_risk_cf_pipeline.ipynb
+For deployments where sensitive policyholder data cannot leave the insurer's infrastructure, the guardrail agent can be replaced with a local LLM:
+
+```
+Model      : Qwen2.5-32B-Instruct
+Quantization: AWQ (activation-aware weight quantization)
+Serving    : vLLM 0.4.2 with PagedAttention
+Context    : YaRN context extension
 ```
 
-| Result | Location in repo | Paper reference |
-|---|---|---|
-| Male case 4 CF pathways | `phd_experiment_results.json` → `male_case` | Table 3 |
-| Female case Fallback pathways | `phd_experiment_results.json` → `female_case` | Table 4 |
-| Guardrail ablation comparison | `phd_experiment_results.json` → `ablation` | Table 5 |
-| Model performance (Acc, Recall) | Notebook Section 2 output | Section 3.3 |
-| Guardrail JSON examples | Notebook Section 3 output | Table 2 |
+Replace the `client.chat.completions.create(...)` call in `get_clinical_guardrails()` with the vLLM endpoint accordingly.
+
+---
+
+## Experimental Environment
+
+| Component | Specification |
+|---|---|
+| CPU | Intel Core i5-14500 (14 cores, up to 4.32 GHz) |
+| RAM | 128 GB |
+| GPU | NVIDIA GeForce RTX 4060 Ti |
+| OS | Windows 10 / Ubuntu 20.04+ |
+| Python | 3.10+ |
 
 ---
 
 ## Citation
 
-If you use this code or data in your research, please cite:
-
-```
-```
-
 ---
 
 ## License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
-> ⚠️ **Disclaimer**: This repository is intended for academic research purposes only.  
-> Clinical application of any outputs requires validation by qualified medical professionals.
+This code is released for academic reproducibility purposes.  
+KNHANES data use is subject to KDCA data use agreements.
