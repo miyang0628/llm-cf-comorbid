@@ -3,8 +3,8 @@
 This repository contains the full reproducibility code for the paper:
 
 > **"LLM-Guided Counterfactual Intervention for Comorbid Chronic Disease Risk in Health Insurance"**  
-> Munil Yang, Heuiju Chun  
-> SSIST / Dongduk Women's University, Seoul, Republic of Korea
+> Anonymous Authors  
+> Anonymous Institution(s)
 
 ---
 
